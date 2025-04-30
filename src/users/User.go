@@ -41,16 +41,8 @@ func (rcv *User) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *User) Name() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
 func (rcv *User) Id() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.GetUint64(o + rcv._tab.Pos)
 	}
@@ -58,17 +50,155 @@ func (rcv *User) Id() uint64 {
 }
 
 func (rcv *User) MutateId(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(6, n)
+	return rcv._tab.MutateUint64Slot(4, n)
+}
+
+func (rcv *User) Name() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) Age() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *User) MutateAge(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(8, n)
+}
+
+func (rcv *User) Email() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) Address() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) Phone() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) CreatedAt() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) UpdatedAt() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) IsActive() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *User) MutateIsActive(n bool) bool {
+	return rcv._tab.MutateBoolSlot(20, n)
+}
+
+func (rcv *User) LastLogin() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) ProfilePicture() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *User) Roles(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+	}
+	return nil
+}
+
+func (rcv *User) RolesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
 }
 
 func UserStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
-}
-func UserAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
+	builder.StartObject(12)
 }
 func UserAddId(builder *flatbuffers.Builder, id uint64) {
-	builder.PrependUint64Slot(1, id, 0)
+	builder.PrependUint64Slot(0, id, 0)
+}
+func UserAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(name), 0)
+}
+func UserAddAge(builder *flatbuffers.Builder, age uint32) {
+	builder.PrependUint32Slot(2, age, 0)
+}
+func UserAddEmail(builder *flatbuffers.Builder, email flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(email), 0)
+}
+func UserAddAddress(builder *flatbuffers.Builder, address flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(address), 0)
+}
+func UserAddPhone(builder *flatbuffers.Builder, phone flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(phone), 0)
+}
+func UserAddCreatedAt(builder *flatbuffers.Builder, createdAt flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(createdAt), 0)
+}
+func UserAddUpdatedAt(builder *flatbuffers.Builder, updatedAt flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(updatedAt), 0)
+}
+func UserAddIsActive(builder *flatbuffers.Builder, isActive bool) {
+	builder.PrependBoolSlot(8, isActive, false)
+}
+func UserAddLastLogin(builder *flatbuffers.Builder, lastLogin flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(lastLogin), 0)
+}
+func UserAddProfilePicture(builder *flatbuffers.Builder, profilePicture flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(profilePicture), 0)
+}
+func UserAddRoles(builder *flatbuffers.Builder, roles flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(roles), 0)
+}
+func UserStartRolesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func UserEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

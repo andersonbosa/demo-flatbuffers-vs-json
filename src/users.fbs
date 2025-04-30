@@ -1,8 +1,18 @@
 namespace users;
 
 table User {
-  name: string;
   id: ulong;
+  name: string;
+  age: uint;
+  email: string;
+  address: string;
+  phone: string;
+  created_at: string;
+  updated_at: string;
+  is_active: bool;
+  last_login: string;
+  profile_picture: string;
+  roles: [string];
 }
 
 table UserList {
