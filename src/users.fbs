@@ -1,0 +1,12 @@
+namespace users;
+
+table User {
+  name: string;
+  id: ulong;
+}
+
+table UserList {
+  users: [User];
+}
+
+root_type UserList;
