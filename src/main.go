@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/andersonbosa/demo-flatbuffers-vs-json/users"
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
@@ -25,11 +28,9 @@ type UserJson struct {
 	Roles          []string `json:"roles"`
 }
 
-func generateUserData(n int) ([]UserJson, [][]byte) {
+func generateUserData(n int) []UserJson {
 	data := make([]UserJson, 0, n)
-	names := make([][]byte, 0, n)
 	now := time.Now()
-
 	for i := 0; i < n; i++ {
 		user := UserJson{
 			Id:             uint64(i),
@@ -42,42 +43,48 @@ func generateUserData(n int) ([]UserJson, [][]byte) {
 			UpdatedAt:      now.Format(time.RFC3339),
 			IsActive:       i%2 == 0,
 			LastLogin:      now.Add(-time.Duration(i) * time.Minute).Format(time.RFC3339),
-			ProfilePicture: fmt.Sprintf("https://avatar.iran.liara.run/username?username=%d", i),
+			ProfilePicture: fmt.Sprintf("https://img.com/%d.jpg", i),
 			Roles:          []string{"user", "viewer"},
 		}
 		data = append(data, user)
-		names = append(names, []byte(user.Name))
 	}
-	return data, names
+	return data
 }
 
-func benchmarkJson(users []UserJson) ([]byte, time.Duration, time.Duration) {
-	startMarshal := time.Now()
+func writeFile(filename string, data []byte) {
+	err := os.WriteFile(filename, data, 0644)
+	if err != nil {
+		log.Fatalf("Erro ao escrever %s: %v", filename, err)
+	}
+	log.Printf("Arquivo %s salvo com sucesso (%.2f MB)", filename, bytesToMB(len(data)))
+}
+
+func benchmarkJsonWrite(users []UserJson) ([]byte, time.Duration) {
+	start := time.Now()
 	buf, err := json.Marshal(users)
 	if err != nil {
 		log.Fatal(err)
 	}
-	marshalTime := time.Since(startMarshal)
-
-	startUnmarshal := time.Now()
-	var decoded []UserJson
-	if err := json.Unmarshal(buf, &decoded); err != nil {
-		log.Fatal(err)
-	}
-	unmarshalTime := time.Since(startUnmarshal)
-
-	return buf, marshalTime, unmarshalTime
+	return buf, time.Since(start)
 }
 
-func benchmarkFlatBuffers(usersData []UserJson) ([]byte, time.Duration, time.Duration) {
+func benchmarkJsonRead(buf []byte) time.Duration {
+	start := time.Now()
+	var users []UserJson
+	err := json.Unmarshal(buf, &users)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return time.Since(start)
+}
+
+func benchmarkFlatBuffersWrite(usersData []UserJson) ([]byte, time.Duration) {
 	builder := flatbuffers.NewBuilder(0)
 	offsets := make([]flatbuffers.UOffsetT, len(usersData))
 
-	startBuild := time.Now()
-
+	start := time.Now()
 	for i := len(usersData) - 1; i >= 0; i-- {
 		u := usersData[i]
-
 		name := builder.CreateString(u.Name)
 		email := builder.CreateString(u.Email)
 		address := builder.CreateString(u.Address)
@@ -112,50 +119,100 @@ func benchmarkFlatBuffers(usersData []UserJson) ([]byte, time.Duration, time.Dur
 		users.UserAddRoles(builder, roles)
 		offsets[i] = users.UserEnd(builder)
 	}
-
 	users.UserListStartUsersVector(builder, len(offsets))
 	for i := len(offsets) - 1; i >= 0; i-- {
 		builder.PrependUOffsetT(offsets[i])
 	}
-	userVec := builder.EndVector(len(offsets))
+	usersVec := builder.EndVector(len(offsets))
 
 	users.UserListStart(builder)
-	users.UserListAddUsers(builder, userVec)
+	users.UserListAddUsers(builder, usersVec)
 	root := users.UserListEnd(builder)
 	builder.Finish(root)
-	buildTime := time.Since(startBuild)
 
-	buf := builder.FinishedBytes()
+	return builder.FinishedBytes(), time.Since(start)
+}
 
-	startRead := time.Now()
+func benchmarkFlatBuffersRead(buf []byte) time.Duration {
+	start := time.Now()
 	list := users.GetRootAsUserList(buf, 0)
 	var user users.User
 	for i := 0; i < list.UsersLength(); i++ {
 		list.Users(&user, i)
 		_ = user.Id()
 		_ = user.Name()
-		_ = user.Email()
 	}
-	readTime := time.Since(startRead)
-
-	return buf, buildTime, readTime
+	return time.Since(start)
 }
 
 func bytesToMB(bytes int) float64 {
-	return float64(bytes) / 1024 / 1024
+	return float64(bytes) / 1024.0 / 1024.0
+}
+
+func generateBarItems(values []float64) []opts.BarData {
+	items := make([]opts.BarData, len(values))
+	for i, v := range values {
+		items[i] = opts.BarData{Value: v}
+	}
+	return items
+}
+
+func renderCharts(jsonTimes, flatTimes []float64, jsonSizeMB, flatSizeMB float64) {
+	barTime := charts.NewBar()
+	barTime.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{Title: "Benchmark Tempo", Subtitle: "JSON vs FlatBuffers"}),
+		charts.WithYAxisOpts(opts.YAxis{Name: "Tempo (ms)"}),
+	)
+	barTime.SetXAxis([]string{"Write", "Read"}).
+		AddSeries("JSON", generateBarItems(jsonTimes)).
+		AddSeries("FlatBuffers", generateBarItems(flatTimes))
+	f1, _ := os.Create("benchmark_tempo_chart.html")
+	defer f1.Close()
+	barTime.Render(f1)
+
+	barSize := charts.NewBar()
+	barSize.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{Title: "Benchmark Tamanho", Subtitle: "JSON vs FlatBuffers"}),
+		charts.WithYAxisOpts(opts.YAxis{Name: "Tamanho (MB)"}),
+	)
+	barSize.SetXAxis([]string{"JSON", "FlatBuffers"}).
+		AddSeries("Tamanho", generateBarItems([]float64{jsonSizeMB, flatSizeMB}))
+	f2, _ := os.Create("benchmark_tamanho_chart.html")
+	defer f2.Close()
+	barSize.Render(f2)
 }
 
 func main() {
-	log.Println("Benchmarking JSON vs FlatBuffers...")
-
 	const dataSize = 1_000_000
-	jsonData, _ := generateUserData(dataSize)
+	log.Println("Gerando dados...")
+	users := generateUserData(dataSize)
 
-	log.Println("Running JSON benchmark...")
-	jsonBuf, jsonWriteTime, jsonReadTime := benchmarkJson(jsonData)
-	log.Printf("JSON -> Size: %.3f MB | Write: %v | Read: %v\n", bytesToMB(len(jsonBuf)), jsonWriteTime, jsonReadTime)
+	log.Println("Serializando JSON...")
+	jsonBuf, jsonWrite := benchmarkJsonWrite(users)
+	writeFile("output.json", jsonBuf)
 
-	log.Println("Running FlatBuffers benchmark...")
-	flatBuf, flatWriteTime, flatReadTime := benchmarkFlatBuffers(jsonData)
-	log.Printf("FlatBuffers -> Size: %.3f MB | Write: %v | Read: %v\n", bytesToMB(len(flatBuf)), flatWriteTime, flatReadTime)
+	log.Println("Serializando FlatBuffers...")
+	flatBuf, flatWrite := benchmarkFlatBuffersWrite(users)
+	writeFile("output.bin", flatBuf)
+
+	log.Println("Lendo JSON...")
+	jsonRead := benchmarkJsonRead(jsonBuf)
+
+	log.Println("Lendo FlatBuffers...")
+	flatRead := benchmarkFlatBuffersRead(flatBuf)
+
+	jsonSizeMB := bytesToMB(len(jsonBuf))
+	flatSizeMB := bytesToMB(len(flatBuf))
+
+	log.Println("Resultados:")
+	log.Printf("JSON        -> %.2f MB | Write: %v | Read: %v", jsonSizeMB, jsonWrite, jsonRead)
+	log.Printf("FlatBuffers -> %.2f MB | Write: %v | Read: %v", flatSizeMB, flatWrite, flatRead)
+
+	renderCharts(
+		[]float64{float64(jsonWrite.Milliseconds()), float64(jsonRead.Milliseconds())},
+		[]float64{float64(flatWrite.Milliseconds()), float64(flatRead.Milliseconds())},
+		jsonSizeMB,
+		flatSizeMB,
+	)
+	log.Println("Charts gerados.")
 }
